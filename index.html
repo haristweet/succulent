@@ -1,0 +1,795 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SUCCULENT</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#08100a;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
+</style>
+</head>
+<body>
+<canvas id="cv" width="180" height="320"></canvas>
+<input id="hiddenInput" type="text" maxlength="8"
+  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+  style="position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;">
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+
+function resize(){
+  const s=Math.min(window.innerWidth/180,window.innerHeight/320);
+  cv.style.width=(180*s)+'px';cv.style.height=(320*s)+'px';
+}
+resize();window.addEventListener('resize',resize);
+
+// ── FONT ────────────────────────────────────────────────
+const FONT={
+  '0':'111;101;101;101;111','1':'010;110;010;010;111','2':'111;001;111;100;111',
+  '3':'111;001;111;001;111','4':'101;101;111;001;001','5':'111;100;111;001;111',
+  '6':'111;100;111;101;111','7':'111;001;010;010;010','8':'111;101;111;101;111',
+  '9':'111;101;111;001;111','A':'010;101;111;101;101','B':'110;101;110;101;110',
+  'C':'111;100;100;100;111','D':'110;101;101;101;110','E':'111;100;110;100;111',
+  'F':'111;100;110;100;100','G':'111;100;101;101;111','H':'101;101;111;101;101',
+  'I':'111;010;010;010;111','J':'001;001;001;101;111','K':'101;110;100;110;101',
+  'L':'100;100;100;100;111','M':'101;111;111;101;101','N':'101;111;111;111;101',
+  'O':'111;101;101;101;111','P':'111;101;111;100;100','Q':'111;101;101;111;011',
+  'R':'110;101;110;101;101','S':'111;100;111;001;111','T':'111;010;010;010;010',
+  'U':'101;101;101;101;111','V':'101;101;101;101;010','W':'101;101;111;111;101',
+  'X':'101;101;010;101;101','Y':'101;101;010;010;010','Z':'111;001;010;100;111',
+  ' ':'000;000;000;000;000','!':'010;010;010;000;010','+':'000;010;111;010;000',
+  '-':'000;000;111;000;000','.':'000;000;000;000;010',':':'000;010;000;010;000',
+  '/':'001;001;010;100;100','>':'100;010;001;010;100','?':'111;001;010;000;010',
+};
+function pixText(str,x,y,c='#fff'){
+  ctx.fillStyle=c;str=(''+str).toUpperCase();
+  for(let i=0;i<str.length;i++){
+    const ch=FONT[str[i]]||FONT[' '],rows=ch.split(';');
+    for(let r=0;r<5;r++)for(let cc=0;cc<3;cc++)
+      if(rows[r][cc]==='1')ctx.fillRect(x+i*4+cc,y+r,1,1);
+  }
+}
+function pixBig(str,x,y,c){
+  ctx.save();ctx.translate(x,y);ctx.scale(2,2);pixText(str,0,0,c);ctx.restore();
+}
+function pixW(str){return str.length*4;}
+
+// ── SPRITES ─────────────────────────────────────────────
+function spr(rows,px,py,color){
+  ctx.fillStyle=color;
+  for(let r=0;r<rows.length;r++)
+    for(let c=0;c<rows[r].length;c++)
+      if(rows[r][c]==='1')ctx.fillRect(px+c,py+r,1,1);
+}
+
+const POT=[
+  '00011111110000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '00111111111000',
+  '01111111111100',
+  '00111111111000',
+  '00011111110000',
+  '00011111110000',
+];
+const POT_HL=['00011111110000','00111111111000'];
+const POT_SD=[
+  '00100000000000','01000000000000','01000000000000',
+  '01000000000000','01000000000000','01000000000000',
+  '01000000000000','01000000000000','01000000000000',
+  '01000000000000',
+];
+
+const BUD0=['001100','011110','111111','111111','111111','011110','001100'];
+const BUD1=[
+  '0011111100','0111111110','1111111111','1111111111','1111111111',
+  '1111111111','1111111111','0111111110','0011111100','0001111000',
+];
+const BUD2=[
+  '001111000','011111100','111111110','110001110',
+  '100000011','110001110','111111110','011111100','001111000',
+];
+
+const BLOOM_A=[
+  '00001111000000','00111111110000','01111111111000',
+  '11111001111100','11100000011110','11000000001110',
+  '11100000011110','11111001111100','01111111111000',
+  '00111111110000','00001111000000',
+];
+const BLOOM_B=[
+  '00001100000000','00011110000000','01111111110000',
+  '01110110110000','11001111001100','11001111001100',
+  '01110110110000','01111111110000','00011110000000','00001100000000',
+];
+const BLOOM_C=[
+  '00001100000000','00011110000000','00011110000000',
+  '11111111111100','11111111111100','11111111111100',
+  '11111111111100','00011110000000','00011110000000','00001100000000',
+];
+const BLOOM_D=[
+  '0011111100','0111111110','1110011111',
+  '1100001111','1100001111','1110011111','0111111110','0011111100',
+];
+// daisy: 6花びら、中心くっきり
+const BLOOM_E=[
+  '00001111000000','00011111100000',
+  '01100000011000','11000110001100',
+  '11000110001100','11000110001100',
+  '01100000011000','00011111100000',
+  '00001111000000',
+];
+// crown: ロゼット状（多肉植物らしさ）
+const BLOOM_F=[
+  '00001110000000','00011011100000',
+  '00110100110000','01101111011000',
+  '11011111011100','11011111011100',
+  '01101111011000','00110100110000',
+  '00011011100000','00001110000000',
+];
+// bell: 釣り鐘形（垂れ下がる花）
+const BLOOM_G=[
+  '000111110000','001111111000',
+  '011000001100','110000000110',
+  '110000000110','111000001110',
+  '011111111100','001111111000',
+  '000111110000','000011100000',
+];
+// spike: 尖った8方向の花びら
+const BLOOM_H=[
+  '00001100000000','00111111100000',
+  '01100110011000','11001001001100',
+  '11111111111100','11001001001100',
+  '01100110011000','00111111100000',
+  '00001100000000',
+];
+
+// 花の形（スプライト定義）
+const SHAPES=[
+  {spr:BLOOM_A,w:14},{spr:BLOOM_B,w:14},{spr:BLOOM_C,w:14},{spr:BLOOM_D,w:10},
+  {spr:BLOOM_E,w:14},{spr:BLOOM_F,w:14},{spr:BLOOM_G,w:12},{spr:BLOOM_H,w:14},
+];
+const SHAPE_NAMES=['ROSE','STAR','IRIS','PEARL','DAISY','CROWN','BELL','SPIKE'];
+
+// カラーパレット（ペタル色、センター色、名前、レアリティ）
+const COLORS=[
+  {p:'#f05080',c:'#ff9030',n:'CRIMSON', r:0},
+  {p:'#ff8020',c:'#ffcc40',n:'AMBER',   r:0},
+  {p:'#ffd020',c:'#fff080',n:'GOLDEN',  r:0},
+  {p:'#8040ff',c:'#e090ff',n:'VIOLET',  r:0},
+  {p:'#f0f0e8',c:'#ffe0c0',n:'PEARL',   r:0},
+  {p:'#20c080',c:'#60ffc0',n:'JADE',    r:1},
+  {p:'#4080ff',c:'#80d0ff',n:'AZURE',   r:1},
+  {p:'#ff40c0',c:'#ff90e0',n:'MAGENTA', r:1},
+  {p:'#80e040',c:'#c0ff60',n:'LIME',    r:1},
+  {p:'#40ffb0',c:'#c0fff0',n:'AQUA',    r:2},
+  {p:'#ff2020',c:'#ffff00',n:'SCARLET', r:2},
+  {p:'#ffffff',c:'#ffff40',n:'LUNAR',   r:2},
+];
+const RARITY_NAME=['','UNCOMMON ','★ RARE '];
+const RARITY_COL=['','#40ffb0','#ffd700'];
+
+function determineBloom(waterLog,sunLog){
+  const n=waterLog.length;
+  const avgW=waterLog.reduce((a,b)=>a+b,0)/n;
+  const avgS=sunLog.reduce((a,b)=>a+b,0)/n;
+  const varW=waterLog.reduce((a,b)=>a+(b-avgW)**2,0)/n;
+  const consistent=varW<300;
+  const neglected=waterLog.some(w=>w<5);
+  const rescued=neglected&&waterLog[n-1]>60;
+  let maxStreak=0,streak=0;
+  for(const w of waterLog){w>40?maxStreak=Math.max(maxStreak,++streak):streak=0;}
+  const perfect=waterLog.every(w=>w>65)&&sunLog.every(s=>s===1);
+
+  // 形（お世話パターンで8種）
+  let si;
+  if(avgW>70&&avgS>0.8)         si=0; // ROSE: 豊富な水＋強い日光
+  else if(avgW<30&&avgS>0.7)    si=1; // STAR: 乾燥＋日光
+  else if(avgS<0.3)             si=2; // IRIS: 日陰
+  else if(avgW>55&&avgS<0.35)   si=3; // PEARL: 水多め＋日陰
+  else if(consistent&&avgW>55)  si=4; // DAISY: 安定したお世話
+  else if(consistent&&avgS>0.7) si=5; // CROWN: 安定した日光
+  else if(rescued)              si=6; // BELL: 瀕死から回復
+  else if(maxStreak>=5)         si=7; // SPIKE: 長期連続
+  else si=Math.min(3,Math.floor(avgW/25));
+
+  // 色（細かい条件で12色）
+  let ci;
+  if(perfect)                   ci=11; // LUNAR: 完璧ケア
+  else if(rescued)              ci=10; // SCARLET: 瀕死から回復
+  else if(avgS<0.2&&avgW>60)    ci=9;  // AQUA: 深い日陰＋多水
+  else if(avgW>65&&avgS>0.7)    ci=0;  // CRIMSON
+  else if(avgW>50&&avgS>0.7)    ci=1;  // AMBER
+  else if(avgW<35&&avgS>0.6)    ci=2;  // GOLDEN
+  else if(avgS<0.5&&avgW>45)    ci=3;  // VIOLET
+  else if(consistent&&avgW>55)  ci=5;  // JADE
+  else if(avgS>0.6)             ci=6;  // AZURE
+  else if(avgS<0.5&&avgW>35)    ci=7;  // MAGENTA
+  else if(avgW<30)              ci=8;  // LIME
+  else                          ci=4;  // PEARL
+
+  return{si,ci,rarity:COLORS[ci].r};
+}
+
+// ── PARTICLES ────────────────────────────────────────────
+const particles=[];
+function addDrops(x,y){
+  for(let i=0;i<6;i++)particles.push({
+    x,y,vx:(Math.random()-0.5)*1.2,vy:-Math.random()*1.5-0.5,
+    life:1,maxLife:0.8+Math.random()*0.4,c:'#4488ff',type:'drop'
+  });
+}
+function addSparks(x,y,c){
+  for(let i=0;i<10;i++){
+    const a=Math.random()*Math.PI*2,s=1+Math.random()*2;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:1,maxLife:0.6+Math.random()*0.5,c,type:'spark'});
+  }
+}
+function bigBurst(x,y,c1,c2){
+  for(let i=0;i<60;i++){
+    const a=Math.random()*Math.PI*2,s=1+Math.random()*4;
+    const c=Math.random()<0.5?c1:c2;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,
+      life:1,maxLife:0.8+Math.random()*0.8,c,type:'spark'});
+  }
+  // 上方向に舞い上がる花びら
+  for(let i=0;i<20;i++){
+    const a=-Math.PI/2+((Math.random()-0.5)*Math.PI);
+    const s=1.5+Math.random()*3;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:1,maxLife:1.2+Math.random()*0.6,c:c1,type:'spark'});
+  }
+}
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;
+    p.life-=dt/p.maxLife;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  for(const p of particles){
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle=p.c;
+    ctx.fillRect(p.x|0,p.y|0,1,1);
+  }
+  ctx.globalAlpha=1;
+}
+
+// ── GAME STATE ───────────────────────────────────────────
+const SAVE_KEY='succulent-v2';
+const TICK_MS=60*1000;
+const BLOOM_DAYS=7;
+
+function defaultState(){
+  return{
+    screen:'naming',   // 'naming' | 'game'
+    name:'',
+    days:0,water:60,sun:1,
+    waterLog:[],sunLog:[],
+    stage:0,bloomShape:-1,bloomColor:-1,bloomRarity:0,
+    lastTick:Date.now(),
+    watered:false,
+    newBloom:false,
+    bloomAnimT:-1,
+  };
+}
+function loadState(){
+  try{const r=localStorage.getItem(SAVE_KEY);if(r)return JSON.parse(r);}catch(e){}
+  return defaultState();
+}
+function saveState(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
+
+function advanceDay(){
+  state.waterLog.push(state.water);
+  state.sunLog.push(state.sun);
+  state.water=Math.max(0,state.water-35);
+  state.watered=false;
+  state.days++;
+  if(state.stage<3){
+    const d=state.days;
+    state.stage=Math.max(state.stage,d<2?0:d<4?1:d<BLOOM_DAYS?2:2);
+    if(d>=BLOOM_DAYS){
+      const n=state.waterLog.length;
+      const avgW=state.waterLog.reduce((a,b)=>a+b,0)/n;
+      const avgS=state.sunLog.reduce((a,b)=>a+b,0)/n;
+      if(avgW>25){
+        state.stage=3;state.newBloom=true;state.bloomAnimT=0;
+        const bd=determineBloom(state.waterLog,state.sunLog);
+        state.bloomShape=bd.si;state.bloomColor=bd.ci;state.bloomRarity=bd.rarity;
+      }
+    }
+  }
+  saveState();
+}
+
+// 今日のステージ内進捗（0.0〜1.0）: 毎日微妙に変化させるため
+function stageProgress(){
+  const bands=[[0,1],[2,3],[4,6],[7,99]];
+  const [s,e]=bands[Math.min(state.stage,3)];
+  const span=Math.max(1,e-s);
+  return Math.min(1,(state.days-s)/span);
+}
+
+// ── INPUT ────────────────────────────────────────────────
+const mouse={x:0,y:0};
+const _btns={};
+
+cv.addEventListener('mousemove',e=>{
+  const r=cv.getBoundingClientRect();
+  mouse.x=(e.clientX-r.left)*(180/r.width);
+  mouse.y=(e.clientY-r.top)*(320/r.height);
+});
+cv.addEventListener('click',e=>{
+  const r=cv.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(180/r.width);
+  const my=(e.clientY-r.top)*(320/r.height);
+  for(const k in _btns){const b=_btns[k];if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h)b.fn();}
+});
+
+// 名前入力 — キーボードはdocument、モバイルは不可視input
+let nameCursorT=0;
+const hiddenInput=document.getElementById('hiddenInput');
+
+// デスクトップ: document.keydownで処理 + e.preventDefault()でhiddenInputへの挿入を防ぐ
+document.addEventListener('keydown',e=>{
+  if(state.screen!=='naming')return;
+  if(e.isComposing||e.keyCode===229)return; // IMEコンポジション中は無視
+  if(e.key==='Enter'&&state.name.length>0){confirmName();e.preventDefault();return;}
+  if(e.key==='Backspace'){
+    state.name=state.name.slice(0,-1);
+    hiddenInput.value=state.name;
+    e.preventDefault();return;
+  }
+  if(/^[a-zA-Z0-9]$/.test(e.key)&&state.name.length<8){
+    state.name+=e.key.toUpperCase();
+    hiddenInput.value=state.name;
+    e.preventDefault();
+  }
+});
+// モバイル仮想キーボード用フォールバック（isComposingでIME途中入力を除外）
+hiddenInput.addEventListener('input',e=>{
+  if(state.screen!=='naming')return;
+  if(e.isComposing)return;
+  state.name=hiddenInput.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+  hiddenInput.value=state.name;
+});
+cv.addEventListener('click',()=>{
+  if(state.screen==='naming')hiddenInput.focus();
+});
+
+function confirmName(){
+  if(!state.name)return;
+  state.screen='game';
+  hiddenInput.blur();
+  saveState();
+}
+
+function btn(key,label,x,y,w,h,fn,accent='#2a6'){
+  _btns[key]={x,y,w,h,fn};
+  const hov=mouse.x>=x&&mouse.x<=x+w&&mouse.y>=y&&mouse.y<=y+h;
+  ctx.fillStyle=hov?accent:'#081408';ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=accent;
+  ctx.fillRect(x,y,w,1);ctx.fillRect(x,y+h-1,w,1);
+  ctx.fillRect(x,y,1,h);ctx.fillRect(x+w-1,y,1,h);
+  pixText(label,x+Math.round((w-label.length*4)/2),y+Math.round((h-5)/2),hov?'#000':accent);
+}
+
+// ── NAMING SCREEN ────────────────────────────────────────
+function drawNaming(){
+  const CW=180;
+  pixBig('SUCCULENT',Math.round((CW-9*8)/2),20,'#4caa30');
+
+  const msg='YOUR PLANTS NAME?';
+  pixText(msg,Math.round((CW-pixW(msg))/2),48,'#2a5a28');
+
+  // 入力欄
+  const bx=10,by=62,bw=160,bh=16;
+  ctx.fillStyle='#0a140a';ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle='#1a4a1a';
+  ctx.fillRect(bx,by,bw,1);ctx.fillRect(bx,by+bh-1,bw,1);
+  ctx.fillRect(bx,by,1,bh);ctx.fillRect(bx+bw-1,by,1,bh);
+
+  const nw=pixW(state.name);
+  const nx=bx+Math.round((bw-nw)/2);
+  if(state.name.length>0){
+    pixText(state.name,nx,by+5,'#6ccc50');
+  } else {
+    pixText('TAP + TYPE',bx+Math.round((bw-pixW('TAP + TYPE'))/2),by+5,'#1a3a1a');
+  }
+  if(Math.floor(nameCursorT*2)%2===0){
+    ctx.fillStyle='#4caa30';
+    ctx.fillRect(nx+nw+(state.name.length>0?2:0),by+5,1,5);
+  }
+
+  const hint='ENTER TO START';
+  pixText(hint,Math.round((CW-pixW(hint))/2),90,state.name.length>0?'#2a6a28':'#152015');
+
+  // 植物プレビュー（中央）
+  spr(POT,CW/2-7,170,'#b03810');
+  spr(POT_HL,CW/2-7,170,'#d85020');
+  ctx.fillStyle='#2a7a18';
+  for(let i=0;i<10;i++)ctx.fillRect(CW/2-1,160+i,2,1);
+  spr(BUD0,CW/2-3,153,'#3a9a28');
+}
+
+// ── PLANT DRAW ───────────────────────────────────────────
+const PCX=90;
+
+// 水分・日光の状態からサボテンの色・サイズを決定
+function getPlantColors(){
+  const w=state.water, s=state.sun;
+
+  // 体の色：水分量で変化
+  let body;
+  if(w>65)      body='#3acc28'; // ぷっくり・鮮やか
+  else if(w>35) body='#2a9a20'; // 通常
+  else if(w>15) body='#7a9010'; // 乾燥・黄みがかる
+  else          body='#8a6818'; // 瀕死・茶色がかる
+
+  // 茎の色も水分で変化
+  const stemR=w>35?0x20:0x40;
+  const stemG=w>35?Math.floor(0x7a+(w/100)*0x30):0x60;
+  const stem='#'+stemR.toString(16).padStart(2,'0')+stemG.toString(16).padStart(2,'0')+'10';
+
+  // 日光を浴びるほど先端が赤みがかる（多肉植物の日焼け）
+  const tip = s>0.6 ? (w>40?'#c04060':'#a03828') : null;
+
+  // 水分で膨らみ具合が変わる（1pxのアウトラインで表現）
+  const plump=w>60;
+
+  // 水不足で垂れる（droopY px 下にずれる）
+  const droopY=w<15?2:w<25?1:0;
+
+  return{body,stem,tip,plump,droopY};
+}
+
+// plump時: 下に1px影を付けてふっくら見せる
+function sprPlump(rows,px,py,color,tipColor,tipRows=2){
+  spr(rows,px,py+1,'#1a3a10'); // 影
+  spr(rows,px,py,color);
+  if(tipColor)spr(rows.slice(0,tipRows),px,py,tipColor);
+}
+
+function drawPlant(){
+  const prog=stageProgress();
+  const pc=getPlantColors();
+  const extraStem=Math.min(14,state.days*1.5|0);
+  const stemH=22+extraStem;
+  const potY=188;
+  const stemTop=potY-stemH;
+  const potX=PCX-7;
+
+  // 棚
+  ctx.fillStyle='#1a2a14';ctx.fillRect(30,200,120,2);
+  ctx.fillStyle='#0f180a';ctx.fillRect(30,202,120,1);
+
+  // 鉢
+  spr(POT,potX,potY,'#b03810');
+  spr(POT_HL,potX,potY,'#d85020');
+  spr(POT_SD,potX,potY+2,'#801808');
+  ctx.fillStyle='#3a1a08';ctx.fillRect(potX+2,potY,10,2);
+
+  // 茎
+  ctx.fillStyle=pc.stem;
+  for(let i=0;i<stemH;i++)ctx.fillRect(PCX-1,stemTop+i,2,1);
+
+  const dy=pc.droopY; // 水不足で下にずれる
+
+  // 蕾 / 花
+  if(state.stage===0){
+    if(pc.plump){
+      sprPlump(BUD0,PCX-3,stemTop-7+dy,pc.body,pc.tip,1);
+    } else {
+      spr(BUD0,PCX-3,stemTop-7+dy,pc.body);
+      if(pc.tip)spr(BUD0.slice(0,1),PCX-3,stemTop-7+dy,pc.tip);
+    }
+
+  } else if(state.stage===1){
+    if(pc.plump){
+      sprPlump(BUD1,PCX-5,stemTop-10+dy,pc.body,pc.tip,2);
+    } else {
+      spr(BUD1,PCX-5,stemTop-10+dy,pc.body);
+      if(pc.tip)spr(BUD1.slice(0,2),PCX-5,stemTop-10+dy,pc.tip);
+    }
+
+  } else if(state.stage===2){
+    if(pc.plump){
+      sprPlump(BUD1,PCX-5,stemTop-10+dy,pc.body,pc.tip,2);
+    } else {
+      spr(BUD1,PCX-5,stemTop-10+dy,pc.body);
+      if(pc.tip)spr(BUD1.slice(0,2),PCX-5,stemTop-10+dy,pc.tip);
+    }
+    // 中の色がだんだん見えてくる
+    const peekH=Math.round(prog*6);
+    if(peekH>0){
+      ctx.fillStyle='#ff8040';
+      ctx.fillRect(PCX-1,stemTop-6+dy,3,peekH);
+      if(peekH>2){ctx.fillStyle='#ffb060';ctx.fillRect(PCX,stemTop-5+dy,1,peekH-1);}
+    }
+    ctx.fillStyle=pc.body;
+    ctx.fillRect(PCX-4,stemTop-8+dy,2,6);
+    ctx.fillRect(PCX+2,stemTop-8+dy,2,6);
+
+  } else if(state.stage===3&&state.bloomShape>=0){
+    const sh=SHAPES[state.bloomShape];
+    const co=COLORS[state.bloomColor];
+    spr(BUD0,PCX-3,stemTop-4,'#2a7a18');
+    // 花を2x描画（見やすさのため）
+    const fh=sh.spr.length*2, fw=sh.w*2;
+    const fx=PCX-Math.floor(fw/2), fy=stemTop-fh-2;
+    ctx.save();ctx.translate(fx,fy);ctx.scale(2,2);
+    spr(sh.spr,0,0,co.p);
+    ctx.fillStyle=co.c;
+    ctx.fillRect(Math.floor(sh.w/2)-2,Math.floor(sh.spr.length/2)-2,4,4);
+    ctx.restore();
+    // スパークル軌道
+    if(state.newBloom){
+      const t=Date.now()/180;
+      const cy=fy+Math.floor(fh/2);
+      for(let i=0;i<8;i++){
+        const a=t+i*Math.PI/4,d=12+Math.sin(t*3+i)*3;
+        ctx.fillStyle=i%2===0?co.p:co.c;
+        ctx.fillRect((PCX+Math.cos(a)*d)|0,(cy+Math.sin(a)*d)|0,1,1);
+      }
+    }
+  }
+}
+
+// ── HUD ──────────────────────────────────────────────────
+let happyTimer=0;
+
+function drawHUD(){
+  const CW=180;
+
+  // ── ヘッダー ──
+  pixBig('SUCCULENT',Math.round((CW-9*8)/2),8,'#4caa30');
+  if(state.name){
+    const mood=state.water>50?'HAPPY':state.water>20?'OK':'THIRSTY...';
+    const mc=state.water>50?'#4ccc30':state.water>20?'#888830':'#cc3030';
+    const nameX=Math.round((CW-pixW(state.name+' '+mood))/2);
+    pixText(state.name,nameX,23,'#2a6a20');
+    pixText(mood,nameX+pixW(state.name)+4,23,mc);
+  }
+  pixText('DAY '+state.days,CW-pixW('DAY '+state.days)-6,23,'#334433');
+
+  // ── 仕切り線 ──
+  ctx.fillStyle='#1a2a1a';ctx.fillRect(8,213,CW-16,1);
+
+  // ── 情報パネル ──
+  const iy=218;
+
+  // 水ゲージ（横幅いっぱい）
+  pixText('WATER',8,iy,'#4488ff');
+  const gx=42,gw=CW-50;
+  ctx.fillStyle='#0a1020';ctx.fillRect(gx,iy,gw,6);
+  const wc=state.water>60?'#3060ff':state.water>30?'#2040cc':'#601080';
+  ctx.fillStyle=wc;ctx.fillRect(gx,iy,Math.round(state.water*gw/100),6);
+  ctx.fillStyle='#1a2840';
+  ctx.fillRect(gx,iy,gw,1);ctx.fillRect(gx,iy+5,gw,1);
+  ctx.fillRect(gx,iy,1,6);ctx.fillRect(gx+gw-1,iy,1,6);
+
+  // 日当たり
+  pixText('SUN',8,iy+12,state.sun?'#ffcc00':'#334455');
+  if(state.sun){
+    const st=Date.now()/2000;
+    ctx.fillStyle='#ffcc00';
+    for(let i=0;i<8;i++){
+      const a=i*Math.PI/4+st;
+      ctx.fillRect((28+Math.cos(a)*4)|0,(iy+14+Math.sin(a)*4)|0,1,1);
+    }
+    ctx.fillStyle='#ffcc00';ctx.fillRect(26,iy+12,4,4);
+  } else {
+    ctx.fillStyle='#334466';ctx.fillRect(26,iy+12,4,4);
+    pixText('SHADE',34,iy+12,'#334466');
+  }
+
+  // ステージヒント / 開花名
+  if(state.stage<3){
+    const hints=['A TINY BUD...','THE BUD IS SWELLING.','CRACKING OPEN...'];
+    pixText(hints[state.stage]||'',8,iy+24,'#1a3a18');
+    const rem=Math.max(0,BLOOM_DAYS-state.days);
+    if(rem>0)pixText('~'+rem+' DAYS LEFT',8,iy+32,'#152015');
+  } else if(state.bloomShape>=0){
+    const co=COLORS[state.bloomColor];
+    if(state.bloomRarity>0)
+      pixText(RARITY_NAME[state.bloomRarity],8,iy+22,RARITY_COL[state.bloomRarity]);
+    pixBig(SHAPE_NAMES[state.bloomShape],8,state.bloomRarity>0?iy+30:iy+22,co.p);
+    pixText(co.n,8,state.bloomRarity>0?iy+44:iy+36,'#888');
+  }
+
+  // ── ボタン（親指エリア・画面下部）──
+  const by=268;
+  if(state.stage<3){
+    if(!state.watered){
+      btn('water','WATER',8,by,76,22,()=>{
+        state.water=Math.min(100,state.water+40);
+        state.watered=true;happyTimer=120;
+        addDrops(PCX,188);saveState();
+      },'#2488ff');
+    } else {
+      ctx.fillStyle='#0a1020';ctx.fillRect(8,by,76,22);
+      pixText('WATERED!',8+Math.round((76-pixW('WATERED!'))/2),by+8,'#2488ff');
+    }
+    btn('sun',state.sun?'SHADE':'SUNNY',96,by,76,22,()=>{
+      state.sun=state.sun?0:1;saveState();
+    },state.sun?'#886600':'#446600');
+  } else {
+    btn('share','SHARE THIS FLOWER',8,by,164,22,()=>{
+      const co=COLORS[state.bloomColor];
+      const fullName=SHAPE_NAMES[state.bloomShape]+' / '+co.n;
+      const txt=state.name+' bloomed a '+fullName+' on day '+state.days+'! #SUCCULENT';
+      if(navigator.share)navigator.share({text:txt});
+      else navigator.clipboard.writeText(txt).then(()=>alert('Copied!\n'+txt));
+    },'#ff6080');
+  }
+
+  // 水やり後ハッピー表示
+  if(happyTimer>0){
+    ctx.globalAlpha=Math.min(1,happyTimer/40);
+    pixText(state.name+' IS HAPPY!',Math.round((CW-pixW(state.name+' IS HAPPY!'))/2),iy-10,'#4cff60');
+    ctx.globalAlpha=1;
+  }
+  if(state.stage===3&&state.newBloom)
+    pixText('IT BLOOMED!',Math.round((CW-pixW('IT BLOOMED!'))/2),by-10,'#ffff40');
+}
+
+// ── BLOOM ANIMATION ──────────────────────────────────────
+let _burstFired=false;
+let _shake=0;
+
+function drawBloomAnim(dt){
+  const t=state.bloomAnimT;
+  const co=COLORS[state.bloomColor];
+  const sh=SHAPES[state.bloomShape];
+  state.bloomAnimT+=dt;
+  if(_shake>0)_shake=Math.max(0,_shake-dt*8);
+
+  const sx=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
+  const sy=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
+  ctx.save();ctx.translate(sx,sy);
+
+  drawPlant();
+
+  const fr=Math.floor(t*24);
+  if(fr===0||fr===1)      {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
+  else if(fr===2||fr===3) {ctx.fillStyle=co.p;     ctx.fillRect(-8,-8,200,336);}
+  else if(fr===4)         {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
+
+  if(fr>=4&&!_burstFired){
+    const stemH=16+Math.min(10,state.days*1.5|0);
+    const potY=132,bx=PCX,by=potY-stemH-sh.spr.length;
+    bigBurst(bx,by,co.p,co.c);
+    _shake=2;
+    _burstFired=true;
+  }
+  drawParticles();
+  ctx.restore();
+
+  // タイプオン: 花の名前を1文字ずつ表示
+  if(t>=0.4){
+    const sh=SHAPES[state.bloomShape];
+    const co=COLORS[state.bloomColor];
+    const shapeName=SHAPE_NAMES[state.bloomShape];
+    const chars=Math.min(shapeName.length,Math.floor((t-0.4)*14));
+    const name=shapeName.slice(0,chars);
+    const nx=Math.round((180-shapeName.length*8)/2);
+    pixBig(name,nx,236,co.p);
+    if(chars<shapeName.length&&Math.floor(t*6)%2===0){
+      ctx.fillStyle=co.p;ctx.fillRect(nx+chars*8,236,4,10);
+    }
+    if(chars===shapeName.length){
+      if(state.bloomRarity>0)
+        pixText(RARITY_NAME[state.bloomRarity],Math.round((180-RARITY_NAME[state.bloomRarity].length*4)/2),250,RARITY_COL[state.bloomRarity]);
+      pixText(co.n,Math.round((180-co.n.length*4)/2),state.bloomRarity>0?258:250,'#888888');
+      if(Math.floor(t*4)%2===0){
+        ctx.fillStyle=co.c;
+        ctx.fillRect(nx-6,241,3,3);ctx.fillRect(nx+shapeName.length*8+3,241,3,3);
+      }
+    }
+  }
+
+  // 完了 (2.4s)
+  if(t>=2.4){
+    state.bloomAnimT=-1;
+    _burstFired=false;
+  }
+}
+
+// ── DEBUG BUTTONS ─────────────────────────────────────────
+function drawDebug(){
+  btn('dbgDay','+DAY',8,300,34,14,()=>{
+    state.lastTick=0;checkTick(Date.now());
+  },'#444');
+  if(state.stage<3){
+    btn('dbgBloom','BLOOM',46,300,34,14,()=>{
+      state.days=BLOOM_DAYS;state.water=60;state.sun=1;
+      state.waterLog=new Array(BLOOM_DAYS).fill(60);
+      state.sunLog=new Array(BLOOM_DAYS).fill(1);
+      state.bloomShape=0;state.bloomColor=0;state.bloomRarity=0;
+      state.stage=3;state.newBloom=true;state.bloomAnimT=0;
+      _burstFired=false;saveState();
+    },'#644');
+  } else {
+    btn('dbgS','SHP>',46,300,34,14,()=>{
+      state.bloomShape=(state.bloomShape+1)%SHAPES.length;
+      state.newBloom=false;state.bloomAnimT=-1;saveState();
+    },'#464');
+    btn('dbgC','COL>',84,300,34,14,()=>{
+      state.bloomColor=(state.bloomColor+1)%COLORS.length;
+      state.bloomRarity=COLORS[state.bloomColor].r;
+      state.newBloom=false;state.bloomAnimT=-1;saveState();
+    },'#446');
+    pixText(SHAPE_NAMES[state.bloomShape]+'/'+COLORS[state.bloomColor].n,122,303,'#334');
+  }
+}
+
+// ── TICK ─────────────────────────────────────────────────
+let lastTime=0;
+function checkTick(now){
+  if(now-state.lastTick>=TICK_MS){state.lastTick=now;advanceDay();}
+}
+
+// ── BG ───────────────────────────────────────────────────
+function drawBG(){
+  ctx.fillStyle='#050d06';ctx.fillRect(0,0,180,320);
+  ctx.fillStyle='#080e08';
+  for(let x=0;x<180;x+=8)ctx.fillRect(x,0,1,320);
+  for(let y=0;y<320;y+=8)ctx.fillRect(0,y,180,1);
+}
+
+// ── MAIN LOOP ─────────────────────────────────────────────
+function loop(ts){
+  const now=Date.now();
+  const dt=lastTime?Math.min((ts-lastTime)/1000,0.1):0;
+  lastTime=ts;
+
+  if(state.screen==='game'){
+    checkTick(now);
+    if(happyTimer>0)happyTimer=Math.max(0,happyTimer-1);
+    updateParticles(dt);
+  }
+
+  drawBG();
+  if(state.screen==='naming'){
+    drawNaming();
+  } else if(state.bloomAnimT>=0){
+    drawBloomAnim(dt);
+    drawDebug();
+  } else {
+    drawPlant();
+    drawHUD();
+    drawParticles();
+    drawDebug();
+  }
+  requestAnimationFrame(loop);
+}
+
+let state=loadState();
+// 旧セーブからの移行
+if(state.newBloom===undefined)state.newBloom=false;
+if(state.bloomAnimT===undefined)state.bloomAnimT=-1;
+if(!state.screen)state.screen=state.name?'game':'naming';
+// 旧bloomTypeを新システムへ変換
+if(state.bloomType!==undefined&&state.bloomShape===undefined){
+  state.bloomShape=state.bloomType>=0?state.bloomType:- 1;
+  state.bloomColor=state.bloomType>=0?state.bloomType:- 1;
+  state.bloomRarity=0;
+  delete state.bloomType;
+}
+if(state.bloomShape===undefined)state.bloomShape=-1;
+if(state.bloomColor===undefined)state.bloomColor=-1;
+if(state.bloomRarity===undefined)state.bloomRarity=0;
+if(state.screen==='naming')hiddenInput.focus();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
