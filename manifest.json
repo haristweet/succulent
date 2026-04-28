@@ -1,0 +1,14 @@
+{
+  "name": "SUCCULENT",
+  "short_name": "SUCCULENT",
+  "description": "Pixel succulent idle game — water with care",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#08100a",
+  "theme_color": "#08100a",
+  "start_url": "/",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

@@ -3,9 +3,27 @@
 <head>
 <meta charset="utf-8">
 <title>SUCCULENT</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SUCCULENT">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#08100a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{background:#08100a;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;}
+html,body{
+  background:#08100a;
+  width:100%;height:100%;
+  overflow:hidden;
+  touch-action:none;
+}
+body{
+  display:flex;align-items:center;justify-content:center;
+  height:100vh;height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
 canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
 </style>
 </head>
@@ -19,10 +37,17 @@ const cv=document.getElementById('cv');
 const ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 function resize(){
-  const s=Math.min(window.innerWidth/180,window.innerHeight/320);
+  // safe-area-insetを考慮してキャンバスをフィット
+  const vw=window.visualViewport?window.visualViewport.width:window.innerWidth;
+  const vh=window.visualViewport?window.visualViewport.height:window.innerHeight;
+  const s=Math.min(vw/180,vh/320);
   cv.style.width=(180*s)+'px';cv.style.height=(320*s)+'px';
 }
-resize();window.addEventListener('resize',resize);
+resize();
+window.addEventListener('resize',resize);
+if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);
+// スクロール・バウンスを防ぐ
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
 </script>
 <script src="sprites.js"></script>
 <script src="particles.js"></script>
