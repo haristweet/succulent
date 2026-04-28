@@ -2,6 +2,7 @@
 const PCX=90;
 let happyTimer=0;
 let nameCursorT=0;
+let _niceTimer=0; // NICE TIMING! 表示タイマー
 
 // ── BTN HELPER ───────────────────────────────────────────
 function btn(key,label,x,y,w,h,fn,accent='#2a6'){
@@ -58,10 +59,11 @@ function drawNaming(){
 function getPlantColors(){
   const w=state.water, s=state.sun;
 
-  // 体の色：水分量で変化
+  // 体の色：スイートスポット36〜65、それ以上は過水
   let body;
-  if(w>65)      body='#3acc28'; // ぷっくり・鮮やか
-  else if(w>35) body='#2a9a20'; // 通常
+  if(w>85)      body='#8060a0'; // 根腐れ・紫がかる
+  else if(w>70) body='#78b050'; // 過水・薄い緑
+  else if(w>35) body='#3acc28'; // スイートスポット・鮮やか
   else if(w>15) body='#7a9010'; // 乾燥・黄みがかる
   else          body='#8a6818'; // 瀕死・茶色がかる
 
@@ -73,11 +75,11 @@ function getPlantColors(){
   // 日光を浴びるほど先端が赤みがかる（多肉植物の日焼け）
   const tip = s>0.6 ? (w>40?'#c04060':'#a03828') : null;
 
-  // 水分で膨らみ具合が変わる（1pxのアウトラインで表現）
-  const plump=w>60;
+  // 水分で膨らみ具合が変わる（スイートスポット内のみふっくら、過水はしおれる）
+  const plump=w>=50&&w<=70;
 
-  // 水不足で垂れる（droopY px 下にずれる）
-  const droopY=w<15?2:w<25?1:0;
+  // 水不足 or 根腐れで垂れる
+  const droopY=w<15?2:w<25?1:w>85?1:0;
 
   return{body,stem,tip,plump,droopY};
 }
@@ -200,8 +202,8 @@ function drawHUD(){
   pixBig('SUCCULENT',Math.round((CW-9*8)/2),8,'#4caa30');
   btn('openColl','LOG',150,8,26,10,()=>{_view='collection';},'#2a4a6a');
   if(state.name){
-    const mood=state.water>50?'HAPPY':state.water>20?'OK':'THIRSTY...';
-    const mc=state.water>50?'#4ccc30':state.water>20?'#888830':'#cc3030';
+    const mood=state.water>85?'ROOT ROT!':state.water>70?'TOO WET':state.water>35?'HAPPY':state.water>20?'OK':'THIRSTY...';
+    const mc=state.water>85?'#c040e0':state.water>70?'#88cc40':state.water>35?'#4ccc30':state.water>20?'#888830':'#cc3030';
     const nameX=Math.round((CW-pixW(state.name+' '+mood))/2);
     pixText(state.name,nameX,23,'#2a6a20');
     pixText(mood,nameX+pixW(state.name)+4,23,mc);
@@ -214,15 +216,25 @@ function drawHUD(){
   // ── 情報パネル ──
   const iy=218;
 
-  // 水ゲージ（横幅いっぱい）
+  // 水ゲージ（横幅いっぱい）— スイートスポット36〜65をハイライト
   pixText('WATER',8,iy,'#4488ff');
   const gx=42,gw=CW-50;
+  // 背景
   ctx.fillStyle='#0a1020';ctx.fillRect(gx,iy,gw,6);
-  const wc=state.water>60?'#3060ff':state.water>30?'#2040cc':'#601080';
-  ctx.fillStyle=wc;ctx.fillRect(gx,iy,Math.round(state.water*gw/100),6);
+  // スイートスポット帯（薄く）
+  const ssx=gx+Math.round(36*gw/100), ssw=Math.round((65-36)*gw/100);
+  ctx.fillStyle='#0a2a10';ctx.fillRect(ssx,iy,ssw,6);
+  // 水レベル
+  const wLevel=Math.round(state.water*gw/100);
+  const wc=state.water>85?'#a050d0':state.water>65?'#e07020':state.water>35?'#30b0ff':'#2040a0';
+  ctx.fillStyle=wc;ctx.fillRect(gx,iy,wLevel,6);
+  // 枠
   ctx.fillStyle='#1a2840';
   ctx.fillRect(gx,iy,gw,1);ctx.fillRect(gx,iy+5,gw,1);
   ctx.fillRect(gx,iy,1,6);ctx.fillRect(gx+gw-1,iy,1,6);
+  // スイートスポット境界線（36%と65%に縦tick）
+  ctx.fillStyle='#2a5a30';
+  ctx.fillRect(ssx,iy,1,6);ctx.fillRect(ssx+ssw,iy,1,6);
 
   // 日当たり
   pixText('SUN',8,iy+12,state.sun?'#ffcc00':'#334455');
@@ -258,8 +270,14 @@ function drawHUD(){
   if(state.stage<3){
     if(!state.watered){
       btn('water','WATER',8,by,76,22,()=>{
-        state.water=Math.min(100,state.water+40);
+        const before=state.water;
+        state.water=Math.min(100,state.water+30);
         state.watered=true;happyTimer=120;
+        // スイートスポット（20〜45）で水やりするとNICE TIMING!ボーナス
+        if(before>=20&&before<=45){
+          state.careScore=(state.careScore||0)+1;
+          _niceTimer=2.0;
+        }
         addDrops(PCX,188);saveState();
       },'#2488ff');
     } else {
@@ -293,6 +311,19 @@ function drawHUD(){
     ctx.globalAlpha=Math.min(1,happyTimer/40);
     pixText(state.name+' IS HAPPY!',Math.round((CW-pixW(state.name+' IS HAPPY!'))/2),iy-10,'#4cff60');
     ctx.globalAlpha=1;
+  }
+  // NICE TIMING! フェードアウト
+  if(_niceTimer>0){
+    ctx.globalAlpha=Math.min(1,_niceTimer);
+    const niceY=iy-20;
+    pixText('NICE TIMING!',Math.round((CW-pixW('NICE TIMING!'))/2),niceY,'#ffe040');
+    ctx.globalAlpha=1;
+  }
+  // WATER NOW! 点滅アラート（水分<15 かつ未水やり）
+  if(state.water<15&&!state.watered&&state.stage<3){
+    if(Math.floor(Date.now()/300)%2===0){
+      pixText('WATER NOW!',Math.round((CW-pixW('WATER NOW!'))/2),by-12,'#ff3030');
+    }
   }
   if(state.stage===3&&state.newBloom)
     pixText('IT BLOOMED!',Math.round((CW-pixW('IT BLOOMED!'))/2),by-10,'#ffff40');

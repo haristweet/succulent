@@ -76,6 +76,7 @@ function loop(ts){
     checkTick(now);
     nameCursorT+=dt;
     if(happyTimer>0)happyTimer=Math.max(0,happyTimer-1);
+    if(_niceTimer>0)_niceTimer=Math.max(0,_niceTimer-dt);
     updateParticles(dt);
   }
 
@@ -111,6 +112,7 @@ if(state.bloomType!==undefined&&state.bloomShape===undefined){
   delete state.bloomType;
 }
 if(state.plantType===undefined)state.plantType=0;
+if(state.careScore===undefined)state.careScore=0;
 if(state.bloomSaved===undefined)state.bloomSaved=false;
 if(state.bloomShape===undefined)state.bloomShape=-1;
 if(state.bloomColor===undefined)state.bloomColor=-1;

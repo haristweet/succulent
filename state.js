@@ -14,7 +14,10 @@ function determineBloom(waterLog,sunLog){
   const rescued=neglected&&waterLog[n-1]>60;
   let maxStreak=0,streak=0;
   for(const w of waterLog){w>40?maxStreak=Math.max(maxStreak,++streak):streak=0;}
-  const perfect=waterLog.every(w=>w>65)&&sunLog.every(s=>s===1);
+  // 36〜65がスイートスポット。それ以上は過水
+  const overWateredDays=waterLog.filter(w=>w>75).length;
+  const inSweetSpot=waterLog.filter(w=>w>=36&&w<=65).length;
+  const perfect=inSweetSpot>=n*0.8&&overWateredDays===0&&sunLog.every(s=>s===1);
 
   // 形（お世話パターンで8種）
   let si;
@@ -43,7 +46,11 @@ function determineBloom(waterLog,sunLog){
   else if(avgW<30)              ci=8;  // LIME
   else                          ci=4;  // PEARL
 
-  return{si,ci,rarity:COLORS[ci].r};
+  // ケアスコアでレアリティ上乗せ、過水が多いと下げる
+  let rarity=COLORS[ci].r;
+  if((state.careScore||0)>=5&&overWateredDays===0) rarity=Math.min(2,rarity+1);
+  if(overWateredDays>3) rarity=Math.max(0,rarity-1);
+  return{si,ci,rarity};
 }
 
 function determinePlantType(){
@@ -82,7 +89,7 @@ function defaultState(){
   return{
     screen:'naming',   // 'naming' | 'game'
     name:'',
-    days:0,water:60,sun:1,
+    days:0,water:40,sun:1,
     waterLog:[],sunLog:[],
     stage:0,plantType:0,bloomShape:-1,bloomColor:-1,bloomRarity:0,
     lastTick:Date.now(),
@@ -90,6 +97,7 @@ function defaultState(){
     newBloom:false,
     bloomAnimT:-1,
     bloomSaved:false,
+    careScore:0,
   };
 }
 function loadState(){
@@ -101,7 +109,7 @@ function saveState(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));}
 function advanceDay(){
   state.waterLog.push(state.water);
   state.sunLog.push(state.sun);
-  state.water=Math.max(0,state.water-35);
+  state.water=Math.max(0,state.water-20);
   state.watered=false;
   state.days++;
   if(state.stage<3){
