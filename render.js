@@ -302,6 +302,9 @@ function drawHUD(){
       state.watered=false;state.newBloom=false;
       state.bloomAnimT=-1;state.bloomSaved=false;
       state.water=Math.min(state.water+20,60);
+      state.careScore=0;
+      state.name='';state.screen='naming';
+      hiddenInput.value='';hiddenInput.focus();
       saveState();
     },'#2a7a40');
   }
