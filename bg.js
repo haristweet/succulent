@@ -106,6 +106,8 @@ function _bgCity(rng){
     }
   }
 
+  _animPlane();
+  if(!state.sun) _animWindowFlicker();
   _hudPanel();
 }
 
@@ -181,6 +183,7 @@ function _bgRural(rng){
   ctx.fillStyle=state.sun?'#1a2010':'#0e1408';ctx.fillRect(0,178,180,14);
   ctx.fillStyle=state.sun?'#141a0c':'#0a1006';ctx.fillRect(0,190,180,10);
 
+  if(state.sun) _animBirds(); else _animShootingStar();
   _hudPanel();
 }
 
@@ -238,6 +241,7 @@ function _bgWild(rng){
   }
 
   ctx.fillStyle=state.sun?'#0c1208':'#050806';ctx.fillRect(0,188,180,15);
+  if(state.sun) _animBirds(); else _animShootingStar();
   _hudPanel();
 }
 
@@ -267,6 +271,94 @@ function _drawPine(x,baseY,h){
       ctx.fillRect(x-rw+1,ly+row,rw*2,1);
     }
   }
+}
+
+// ── ANIMATIONS ───────────────────────────────────────────
+
+// 飛行機が横切る（CITY）— 80秒周期、約8秒かけて横断
+function _animPlane(){
+  const t=Date.now();
+  const period=80000, dur=8000;
+  const epoch=(t/period)|0;
+  const phase=t%period;
+  if(phase>dur)return;
+  const r=mkRng(epoch^(state.bgSeed||1)^0x1234);
+  const fromRight=r()>.5;
+  const py=18+Math.floor(r()*28);
+  const p=phase/dur;
+  const px=fromRight?Math.floor((1-p)*200)-8:Math.floor(p*200)-8;
+  if(px<-8||px>188)return;
+  // 機体
+  ctx.fillStyle='#c8ccd8';
+  ctx.fillRect(px,py,7,2);
+  ctx.fillRect(px+2,py-1,3,1);   // 上部フィン
+  ctx.fillRect(px+1,py+2,6,1);   // 主翼
+  // 夜は赤い点滅ライト
+  if(!state.sun&&Math.floor(t/600)%2){
+    ctx.fillStyle='#ff2020';
+    ctx.fillRect(fromRight?px:px+6,py,1,1);
+  }
+  // 昼は白い機体ハイライト
+  if(state.sun){ctx.fillStyle='#ffffff';ctx.fillRect(px+2,py,2,1);}
+}
+
+// 窓の明かりがたまに変わる（CITY 夜）— 4秒ごとに数窓チラつく
+function _animWindowFlicker(){
+  const t=Date.now();
+  const epoch=(t/4000)|0;
+  const r=mkRng(epoch^(state.bgSeed||1)^0x5678);
+  for(let i=0;i<3;i++){
+    const wx=10+Math.floor(r()*158);
+    const wy=45+Math.floor(r()*140);
+    ctx.fillStyle=r()>.45?'#ffdd70':'#0a0a22';
+    ctx.fillRect(wx,wy,2,2);
+  }
+}
+
+// 鳥の群れが飛んでいく（田舎・大自然 昼）— 55秒周期、約7秒
+function _animBirds(){
+  const t=Date.now();
+  const period=55000, dur=7000;
+  const epoch=(t/period)|0;
+  const phase=t%period;
+  if(phase>dur)return;
+  const r=mkRng(epoch^(state.bgSeed||1)^0x9abc);
+  const py=28+Math.floor(r()*35);
+  const n=2+Math.floor(r()*3);
+  const p=phase/dur;
+  const bx0=Math.floor(p*210)-15;
+  ctx.fillStyle='#1a2838';
+  for(let i=0;i<n;i++){
+    const bx=bx0+i*14;
+    const by=py+Math.floor(Math.sin(t*.004+i*1.8)*2);
+    if(bx<-2||bx>180)continue;
+    // V字型の鳥シルエット
+    ctx.fillRect(bx,by,1,1);
+    ctx.fillRect(bx-2,by-1,1,1);
+    ctx.fillRect(bx+2,by-1,1,1);
+  }
+}
+
+// 流れ星（田舎・大自然 夜）— 110秒周期、最後の2秒に出現
+function _animShootingStar(){
+  const t=Date.now();
+  const period=110000;
+  const epoch=(t/period)|0;
+  const phase=t%period;
+  const triggerAt=period-2000;
+  if(phase<triggerAt)return;
+  const r=mkRng(epoch^(state.bgSeed||1)^0xdef0);
+  const sx=15+Math.floor(r()*140);
+  const sy=8+Math.floor(r()*55);
+  const p=(phase-triggerAt)/2000; // 0→1
+  const ex=sx+Math.floor(p*45);
+  const ey=sy+Math.floor(p*18);
+  // 先端
+  ctx.fillStyle='#ffffff';ctx.fillRect(ex,ey,2,1);
+  // 軌跡
+  if(p>.15){ctx.fillStyle='#aabbdd';ctx.fillRect(ex-7,ey-3,3,1);}
+  if(p>.3) {ctx.fillStyle='#5566aa';ctx.fillRect(ex-14,ey-6,3,1);}
+  if(p>.5) {ctx.fillStyle='#223355';ctx.fillRect(ex-22,ey-9,2,1);}
 }
 
 // Dark panel overlay for HUD area
