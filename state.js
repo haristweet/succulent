@@ -98,6 +98,8 @@ function defaultState(){
     bloomAnimT:-1,
     bloomSaved:false,
     careScore:0,
+    bgType:0,
+    bgSeed:1,
   };
 }
 function loadState(){

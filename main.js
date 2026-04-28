@@ -56,6 +56,9 @@ cv.addEventListener('wheel',e=>{
 function confirmName(){
   if(!state.name)return;
   state.screen='game';
+  // 植物ごとにランダムな背景を割り当て
+  state.bgType=Math.floor(Math.random()*3);
+  state.bgSeed=(Math.random()*999983+1)|0;
   hiddenInput.blur();
   saveState();
 }
@@ -113,6 +116,8 @@ if(state.bloomType!==undefined&&state.bloomShape===undefined){
 }
 if(state.plantType===undefined)state.plantType=0;
 if(state.careScore===undefined)state.careScore=0;
+if(state.bgType===undefined)state.bgType=Math.floor(Math.random()*3);
+if(!state.bgSeed)state.bgSeed=(Math.random()*999983+1)|0;
 if(state.bloomSaved===undefined)state.bloomSaved=false;
 if(state.bloomShape===undefined)state.bloomShape=-1;
 if(state.bloomColor===undefined)state.bloomColor=-1;

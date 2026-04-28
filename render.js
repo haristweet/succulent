@@ -201,6 +201,11 @@ function drawHUD(){
   // ── ヘッダー ──
   pixBig('SUCCULENT',Math.round((CW-9*8)/2),8,'#4caa30');
   btn('openColl','LOG',150,8,26,10,()=>{_view='collection';},'#2a4a6a');
+  btn('bg',BG_NAMES[state.bgType||0],4,8,28,10,()=>{
+    state.bgType=((state.bgType||0)+1)%3;
+    state.bgSeed=(Math.random()*999983+1)|0;
+    saveState();
+  },'#224433');
   if(state.name){
     const mood=state.water>85?'ROOT ROT!':state.water>70?'TOO WET':state.water>35?'HAPPY':state.water>20?'OK':'THIRSTY...';
     const mc=state.water>85?'#c040e0':state.water>70?'#88cc40':state.water>35?'#4ccc30':state.water>20?'#888830':'#cc3030';
@@ -335,6 +340,12 @@ function drawHUD(){
 // ── COLLECTION SCREEN ────────────────────────────────────
 function drawCollection(){
   const CW=180, ROW_H=20, LIST_TOP=38, LIST_BOT=292;
+
+  // 背景を暗く均一に
+  ctx.fillStyle='#050d06';ctx.fillRect(0,0,180,320);
+  ctx.fillStyle='#080e08';
+  for(let x=0;x<180;x+=8)ctx.fillRect(x,0,1,320);
+  for(let y=0;y<320;y+=8)ctx.fillRect(0,y,180,1);
 
   // タイトル
   pixBig('FLOWER LOG',Math.round((CW-10*8)/2),6,'#4caa30');
@@ -499,10 +510,4 @@ function drawDebug(){
   }
 }
 
-// ── BG ───────────────────────────────────────────────────
-function drawBG(){
-  ctx.fillStyle='#050d06';ctx.fillRect(0,0,180,320);
-  ctx.fillStyle='#080e08';
-  for(let x=0;x<180;x+=8)ctx.fillRect(x,0,1,320);
-  for(let y=0;y<320;y+=8)ctx.fillRect(0,y,180,1);
-}
+// drawBG() is defined in bg.js
