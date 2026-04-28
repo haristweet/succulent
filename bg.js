@@ -49,7 +49,7 @@ function _bgCity(rng){
     // Day: blue gradient sky
     for(let y=0;y<195;y++){
       const t=y/195;
-      ctx.fillStyle=`rgb(${(0x0c+t*0x12)|0},${(0x1e+t*0x1a)|0},${(0x42+t*0x10)|0})`;
+      ctx.fillStyle=`rgb(${(0x1c+t*0x14)|0},${(0x38+t*0x18)|0},${(0x72+t*0x14)|0})`;
       ctx.fillRect(0,y,180,1);
     }
     _drawSun(mx,my);
@@ -120,10 +120,10 @@ function _bgRural(rng){
     // Day: warm blue sky
     for(let y=0;y<100;y++){
       const t=y/100;
-      ctx.fillStyle=`rgb(${(0x10+t*0x18)|0},${(0x28+t*0x18)|0},${(0x48+t*0x10)|0})`;
+      ctx.fillStyle=`rgb(${(0x20+t*0x1c)|0},${(0x48+t*0x1a)|0},${(0x68+t*0x14)|0})`;
       ctx.fillRect(0,y,180,1);
     }
-    ctx.fillStyle='#283840';ctx.fillRect(0,100,180,120);
+    ctx.fillStyle='#38566a';ctx.fillRect(0,100,180,120);
     _drawSun(mx,my);
     _drawCloud(cx1,cy1);_drawCloud(cx2,cy2);
   } else {
@@ -196,10 +196,10 @@ function _bgWild(rng){
     // Day: mountain morning sky
     for(let y=0;y<120;y++){
       const t=y/120;
-      ctx.fillStyle=`rgb(${(0x08+t*0x10)|0},${(0x18+t*0x18)|0},${(0x2e+t*0x16)|0})`;
+      ctx.fillStyle=`rgb(${(0x16+t*0x16)|0},${(0x30+t*0x1c)|0},${(0x56+t*0x16)|0})`;
       ctx.fillRect(0,y,180,1);
     }
-    ctx.fillStyle='#141e2a';ctx.fillRect(0,120,180,80);
+    ctx.fillStyle='#26384e';ctx.fillRect(0,120,180,80);
     _drawSun(mx+20,my);
     _drawCloud(cx1,cy1);_drawCloud(cx2,cy2);_drawCloud(cx3,cy3);
   } else {
