@@ -31,9 +31,11 @@ function determineBloom(waterLog,sunLog){
   else if(maxStreak>=5)         si=7; // SPIKE: 長期連続
   else si=Math.min(3,Math.floor(avgW/25));
 
-  // 色（細かい条件で12色）
+  // 色（細かい条件で12色）— 写真で上書き可
   let ci;
-  if(perfect)                   ci=11; // LUNAR: 完璧ケア
+  if(state.photoColorIdx!=null&&state.photoColorIdx>=0){
+    ci=state.photoColorIdx; // 写真から決定した色を優先
+  } else if(perfect)            ci=11; // LUNAR: 完璧ケア
   else if(rescued)              ci=10; // SCARLET: 瀕死から回復
   else if(avgS<0.2&&avgW>60)    ci=9;  // AQUA: 深い日陰＋多水
   else if(avgW>65&&avgS>0.7)    ci=0;  // CRIMSON
@@ -100,6 +102,7 @@ function defaultState(){
     careScore:0,
     bgType:0,
     bgSeed:1,
+    photoColorIdx:-1,  // -1=未撮影, 0-11=写真から決定した色
   };
 }
 function loadState(){

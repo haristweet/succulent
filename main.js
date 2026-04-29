@@ -122,5 +122,69 @@ if(state.bloomSaved===undefined)state.bloomSaved=false;
 if(state.bloomShape===undefined)state.bloomShape=-1;
 if(state.bloomColor===undefined)state.bloomColor=-1;
 if(state.bloomRarity===undefined)state.bloomRarity=0;
+if(state.photoColorIdx===undefined)state.photoColorIdx=-1;
 if(state.screen==='naming')hiddenInput.focus();
+
+// ── PHOTO FEATURE ─────────────────────────────────────────
+const photoInput=document.createElement('input');
+photoInput.type='file';photoInput.accept='image/*';
+photoInput.style.cssText='position:fixed;opacity:0;pointer-events:none;width:1px;height:1px;top:0;left:0;';
+document.body.appendChild(photoInput);
+
+function triggerPhoto(){photoInput.click();}
+
+photoInput.addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const img=new Image();
+  const url=URL.createObjectURL(file);
+  img.onload=()=>{
+    const oc=document.createElement('canvas');
+    oc.width=oc.height=64;
+    const ox=oc.getContext('2d');
+    ox.drawImage(img,0,0,64,64);
+    state.photoColorIdx=analyzePhoto(ox.getImageData(0,0,64,64).data);
+    URL.revokeObjectURL(url);
+    photoInput.value='';
+    saveState();
+  };
+  img.src=url;
+});
+
+function analyzePhoto(data){
+  const hBuckets=new Array(36).fill(0);
+  let totalV=0,satCount=0,count=0;
+  for(let i=0;i<data.length;i+=4){
+    if(data[i+3]<128)continue;
+    const r=data[i]/255,g=data[i+1]/255,b=data[i+2]/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b),s=max-min;
+    totalV+=max;count++;
+    if(s>0.18&&max>0.2){
+      let h;
+      if(max===r)h=((g-b)/s+6)%6;
+      else if(max===g)h=(b-r)/s+2;
+      else h=(r-g)/s+4;
+      hBuckets[Math.floor(h*60/10)]++;satCount++;
+    }
+  }
+  if(!count)return 4;
+  const avgV=totalV/count,satRatio=satCount/count;
+  if(avgV>0.82&&satRatio<0.1)return 11; // LUNAR (白・明るい)
+  if(avgV<0.12)return 3;                 // VIOLET (暗い)
+  if(satRatio<0.08)return 4;             // PEARL (グレー)
+  let peak=0,peakVal=0;
+  for(let i=0;i<36;i++)if(hBuckets[i]>peakVal){peakVal=hBuckets[i];peak=i;}
+  const hue=peak*10+5;
+  if(hue<15||hue>=345)return 0;  // CRIMSON
+  if(hue<45)return 10;            // SCARLET
+  if(hue<65)return 1;             // AMBER
+  if(hue<80)return 2;             // GOLDEN
+  if(hue<105)return 8;            // LIME
+  if(hue<165)return 5;            // JADE
+  if(hue<200)return 9;            // AQUA
+  if(hue<255)return 6;            // AZURE
+  if(hue<290)return 3;            // VIOLET
+  if(hue<330)return 7;            // MAGENTA
+  return 0;                        // CRIMSON
+}
+
 requestAnimationFrame(loop);

@@ -292,6 +292,17 @@ function drawHUD(){
     btn('sun',state.sun?'SHADE':'SUNNY',96,by,76,22,()=>{
       state.sun=state.sun?0:1;saveState();
     },state.sun?'#886600':'#446600');
+    // 写真ボタン（stage<3のみ）
+    const py=by+26;
+    if(state.photoColorIdx<0){
+      btn('photo','+ PHOTO',8,py,164,14,()=>triggerPhoto(),'#2a4a2a');
+    } else {
+      const co=COLORS[state.photoColorIdx];
+      ctx.fillStyle=co.p; ctx.fillRect(8,py,14,14);
+      ctx.fillStyle='#0a140a'; ctx.fillRect(22,py,100,14);
+      pixText(co.n,24,py+4,co.p);
+      btn('photo','RETAKE',126,py,46,14,()=>triggerPhoto(),'#2a3a2a');
+    }
   } else {
     btn('share','SHARE',8,by,76,22,()=>{
       const co=COLORS[state.bloomColor];
@@ -307,7 +318,7 @@ function drawHUD(){
       state.watered=false;state.newBloom=false;
       state.bloomAnimT=-1;state.bloomSaved=false;
       state.water=Math.min(state.water+20,60);
-      state.careScore=0;
+      state.careScore=0;state.photoColorIdx=-1;
       state.name='';state.screen='naming';
       hiddenInput.value='';hiddenInput.focus();
       saveState();
