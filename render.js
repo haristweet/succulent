@@ -3,6 +3,9 @@ const PCX=90;
 let happyTimer=0;
 let nameCursorT=0;
 let _niceTimer=0; // NICE TIMING! 表示タイマー
+let _photoAnim=-1; // 写真取込アニメ（-1=非表示, 0〜=経過秒）
+const _PHOTO_DUR=2.5;
+const _PHOTO_COLS=['#ff3030','#ff8800','#ffe030','#30ee50','#00ccff','#3060ff','#cc44ff'];
 
 // ── BTN HELPER ───────────────────────────────────────────
 function btn(key,label,x,y,w,h,fn,accent='#2a6'){
@@ -97,6 +100,26 @@ function bloomFlowerY(){
   const sh=SHAPES[state.bloomShape>=0?state.bloomShape:0];
   const fh=sh.spr.length*2;
   return centerY-stalkH-7-fh+Math.floor(fh/2);
+}
+
+function drawPhotoAnim(){
+  if(_photoAnim<0)return;
+  const t=_photoAnim;
+  // フェードイン0.3s、フェードアウト0.5s
+  const fade=t<0.3?t/0.3:t>_PHOTO_DUR-0.5?(_PHOTO_DUR-t)/0.5:1;
+  if(fade<=0){_photoAnim=-1;return;}
+  const y0=50,y1=220,span=y1-y0;
+  const speed=72; // px/sec
+  const lineH=3,gap=span/7;
+  ctx.save();
+  ctx.globalCompositeOperation='screen';
+  ctx.globalAlpha=0.55*fade;
+  for(let i=0;i<7;i++){
+    const y=y0+((t*speed+i*gap)%span);
+    ctx.fillStyle=_PHOTO_COLS[i];
+    ctx.fillRect(0,Math.round(y),180,lineH);
+  }
+  ctx.restore();
 }
 
 function drawPlant(){

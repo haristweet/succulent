@@ -80,6 +80,7 @@ function loop(ts){
     nameCursorT+=dt;
     if(happyTimer>0)happyTimer=Math.max(0,happyTimer-1);
     if(_niceTimer>0)_niceTimer=Math.max(0,_niceTimer-dt);
+    if(_photoAnim>=0){_photoAnim+=dt;if(_photoAnim>=_PHOTO_DUR)_photoAnim=-1;}
     updateParticles(dt);
   }
 
@@ -94,6 +95,7 @@ function loop(ts){
     drawDebug();
   } else {
     drawPlant();
+    drawPhotoAnim();
     drawHUD();
     drawParticles();
     drawDebug();
@@ -143,6 +145,7 @@ photoInput.addEventListener('change',e=>{
     const ox=oc.getContext('2d');
     ox.drawImage(img,0,0,64,64);
     state.photoColorIdx=analyzePhoto(ox.getImageData(0,0,64,64).data);
+    _photoAnim=0; // 7色ラインアニメ開始
     URL.revokeObjectURL(url);
     photoInput.value='';
     saveState();
