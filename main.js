@@ -1,5 +1,6 @@
 // ── INPUT ────────────────────────────────────────────────
 const hiddenInput=document.getElementById('hiddenInput');
+let _tapCount=0,_tapLast=0;
 
 cv.addEventListener('mousemove',e=>{
   const r=cv.getBoundingClientRect();
@@ -10,6 +11,13 @@ cv.addEventListener('click',e=>{
   const r=cv.getBoundingClientRect();
   const mx=(e.clientX-r.left)*(180/r.width);
   const my=(e.clientY-r.top)*(320/r.height);
+  // 名前エリア（y=16〜32, x=30〜150）トリプルタップでデバッグトグル
+  if(mx>=30&&mx<=150&&my>=16&&my<=32&&state.screen==='game'&&_view==='game'){
+    const now=Date.now();
+    if(now-_tapLast<600)_tapCount++;else _tapCount=1;
+    _tapLast=now;
+    if(_tapCount>=3){_dbgVisible=!_dbgVisible;_tapCount=0;}
+  }
   for(const k in _btns){const b=_btns[k];if(mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h)b.fn();}
 });
 

@@ -4,6 +4,7 @@ let happyTimer=0;
 let nameCursorT=0;
 let _niceTimer=0; // NICE TIMING! 表示タイマー
 let _photoAnim=-1; // 写真取込アニメ（-1=非表示, 0〜=経過秒）
+let _dbgVisible=false; // トリプルタップで表示
 const _PHOTO_DUR=2.5;
 const _PHOTO_COLS=['#ff3030','#ff8800','#ffe030','#30ee50','#00ccff','#3060ff','#cc44ff'];
 
@@ -515,6 +516,7 @@ function drawBloomAnim(dt){
 
 // ── DEBUG BUTTONS ─────────────────────────────────────────
 function drawDebug(){
+  if(!_dbgVisible)return;
   btn('dbgDay','+DAY',8,300,34,14,()=>{
     state.lastTick=0;checkTick(Date.now());
   },'#444');
