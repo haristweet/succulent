@@ -619,9 +619,19 @@ function drawDebug(){
       state.waterLog=new Array(BLOOM_DAYS).fill(60);
       state.sunLog=new Array(BLOOM_DAYS).fill(1);
       state.bloomShape=0;state.bloomColor=0;state.bloomRarity=0;
+      state.rafflesia=false;
       state.stage=3;state.newBloom=true;state.bloomAnimT=0;
       _burstFired=false;saveState();
     },'#644');
+    btn('dbgRafl','RAFL',84,300,34,14,()=>{
+      state.days=BLOOM_DAYS;state.water=60;state.sun=1;
+      state.waterLog=new Array(BLOOM_DAYS).fill(60);
+      state.sunLog=new Array(BLOOM_DAYS).fill(1);
+      state.bloomShape=0;state.bloomColor=0;state.bloomRarity=3;
+      state.rafflesia=true;
+      state.stage=3;state.newBloom=true;state.bloomAnimT=0;
+      _burstFired=false;saveState();
+    },'#622');
   } else {
     btn('dbgS','SHP>',46,300,34,14,()=>{
       state.bloomShape=(state.bloomShape+1)%SHAPES.length;
@@ -632,7 +642,8 @@ function drawDebug(){
       state.bloomRarity=COLORS[state.bloomColor].r;
       state.newBloom=false;state.bloomAnimT=-1;saveState();
     },'#446');
-    pixText(SHAPE_NAMES[state.bloomShape]+'/'+COLORS[state.bloomColor].n,8,314,'#334');
+    const label=state.rafflesia?'RAFFLESIA!!':SHAPE_NAMES[state.bloomShape]+'/'+COLORS[state.bloomColor].n;
+    pixText(label,8,314,state.rafflesia?'#c03020':'#334');
   }
 }
 
