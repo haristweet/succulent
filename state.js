@@ -103,6 +103,7 @@ function defaultState(){
     bgType:0,
     bgSeed:1,
     photoColorIdx:-1,  // -1=未撮影, 0-11=写真から決定した色
+    rafflesia:false,   // 超レアMYTHICイベント
   };
 }
 function loadState(){
@@ -129,11 +130,15 @@ function advanceDay(){
       if(avgW>25){
         state.stage=3;state.newBloom=true;state.bloomAnimT=0;
         const bd=determineBloom(state.waterLog,state.sunLog);
-        state.bloomShape=bd.si;state.bloomColor=bd.ci;state.bloomRarity=bd.rarity;
+        state.bloomShape=bd.si;state.bloomColor=bd.ci;
+        // 0.8%の確率でMYTHICラフレシア
+        const isRafflesia=!state.bloomSaved&&Math.random()<0.008;
+        state.rafflesia=isRafflesia;
+        state.bloomRarity=isRafflesia?3:bd.rarity;
         if(!state.bloomSaved){
-          collection.push({shape:bd.si,color:bd.ci,rarity:bd.rarity,
+          collection.push({shape:bd.si,color:bd.ci,rarity:state.bloomRarity,
             plantType:state.plantType||0,name:state.name,
-            day:state.days,ts:Date.now()});
+            day:state.days,ts:Date.now(),rafflesia:isRafflesia});
           saveColl();state.bloomSaved=true;
         }
       }

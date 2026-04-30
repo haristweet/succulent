@@ -133,6 +133,7 @@ if(state.bloomShape===undefined)state.bloomShape=-1;
 if(state.bloomColor===undefined)state.bloomColor=-1;
 if(state.bloomRarity===undefined)state.bloomRarity=0;
 if(state.photoColorIdx===undefined)state.photoColorIdx=-1;
+if(state.rafflesia===undefined)state.rafflesia=false;
 if(state.screen==='naming')hiddenInput.focus();
 
 // ── PHOTO FEATURE ─────────────────────────────────────────

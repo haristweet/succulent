@@ -103,6 +103,52 @@ function bloomFlowerY(){
   return centerY-stalkH-7-fh+Math.floor(fh/2);
 }
 
+function drawRafflesia(cx,cy,s){
+  const r=Math.round(42*s); if(r<2)return;
+  // 5枚のペタル
+  for(let i=0;i<5;i++){
+    const a=i/5*Math.PI*2-Math.PI/2;
+    const pc=cx+Math.round(Math.cos(a)*r*0.58);
+    const pr=cy+Math.round(Math.sin(a)*r*0.58);
+    const pw=Math.round(r*0.54),ph=Math.round(r*0.62);
+    for(let dy=-ph;dy<=ph;dy++){
+      const ratio=dy/ph;
+      const hw=Math.round(pw*Math.sqrt(Math.max(0,1-ratio*ratio)));
+      ctx.fillStyle=ratio<0.2?'#8b2214':'#c03020';
+      if(hw>0)ctx.fillRect(pc-hw,pr+dy,hw*2,1);
+    }
+    // イボ（warts）
+    ctx.fillStyle='#d4a860';
+    ctx.fillRect(pc+Math.round(Math.cos(a+0.5)*pw*0.4)-1,pr+Math.round(Math.sin(a+0.5)*ph*0.35)-1,2,2);
+    ctx.fillRect(pc+Math.round(Math.cos(a-0.4)*pw*0.3)-1,pr+Math.round(Math.sin(a-0.4)*ph*0.4)-1,2,2);
+    ctx.fillRect(pc+Math.round(Math.cos(a+0.1)*pw*0.15)-1,pr+Math.round(Math.sin(a+0.1)*ph*0.6)-1,2,2);
+  }
+  // 中心リム
+  const rim=Math.round(r*0.36);
+  for(let dy=-rim;dy<=rim;dy++){
+    const hw=Math.round(rim*Math.sqrt(Math.max(0,1-(dy/rim)**2)));
+    ctx.fillStyle='#5a1808';
+    if(hw>0)ctx.fillRect(cx-hw,cy+dy,hw*2,1);
+  }
+  // 中心穴
+  const hole=Math.round(r*0.24);
+  for(let dy=-hole;dy<=hole;dy++){
+    const hw=Math.round(hole*Math.sqrt(Math.max(0,1-(dy/hole)**2)));
+    ctx.fillStyle='#100404';
+    if(hw>0)ctx.fillRect(cx-hw,cy+dy,hw*2,1);
+  }
+  // 臭気ドット（フル展開後）
+  if(s>0.85){
+    const tNow=Date.now()/500;
+    for(let i=0;i<8;i++){
+      const ba=i/8*Math.PI*2+tNow*0.7;
+      const d=r+3+Math.round(Math.sin(tNow*3+i)*2);
+      ctx.fillStyle=i%2===0?'#786040':'#604830';
+      ctx.fillRect(cx+Math.round(Math.cos(ba)*d),cy+Math.round(Math.sin(ba)*d),1,1);
+    }
+  }
+}
+
 function drawPhotoAnim(){
   if(_photoAnim<0)return;
   const t=_photoAnim;
@@ -183,36 +229,41 @@ function drawPlant(){
     }
 
   } else if(state.stage===3&&state.bloomShape>=0){
-    const sh=SHAPES[state.bloomShape];
-    const co=COLORS[state.bloomColor];
     const pt=PTYPE[state.plantType||0];
     const px=PCX-Math.floor(pt.w2/2), py=soilY-pt.h2;
     const centerY=py+pt.cy2;
     spr(pt.s2,px,py,pc.body);
     if(pc.tip)spr(pt.s2.slice(0,2),px,py,pc.tip);
-    // 花茎（フル丈 28px）
-    const stalkH=28;
-    ctx.fillStyle=pc.stem;
-    for(let i=1;i<=stalkH;i++)ctx.fillRect(PCX-1,centerY-i,2,1);
-    // 萼
-    const stalkTopY=centerY-stalkH;
-    spr(BUD0,PCX-3,stalkTopY-7,'#2a7a18');
-    // 花を2x描画
-    const fh=sh.spr.length*2, fw=sh.w*2;
-    const fx=PCX-Math.floor(fw/2), fy=stalkTopY-7-fh;
-    ctx.save();ctx.translate(fx,fy);ctx.scale(2,2);
-    spr(sh.spr,0,0,co.p);
-    ctx.fillStyle=co.c;
-    ctx.fillRect(Math.floor(sh.w/2)-2,Math.floor(sh.spr.length/2)-2,4,4);
-    ctx.restore();
-    // スパークル軌道
-    if(state.newBloom){
-      const t=Date.now()/180;
-      const cy=fy+Math.floor(fh/2);
-      for(let i=0;i<8;i++){
-        const a=t+i*Math.PI/4,d=12+Math.sin(t*3+i)*3;
-        ctx.fillStyle=i%2===0?co.p:co.c;
-        ctx.fillRect((PCX+Math.cos(a)*d)|0,(cy+Math.sin(a)*d)|0,1,1);
+    if(state.rafflesia){
+      // 超巨大ラフレシア（寄生、茎なし）
+      drawRafflesia(PCX,centerY-18,1);
+    } else {
+      const sh=SHAPES[state.bloomShape];
+      const co=COLORS[state.bloomColor];
+      // 花茎（フル丈 28px）
+      const stalkH=28;
+      ctx.fillStyle=pc.stem;
+      for(let i=1;i<=stalkH;i++)ctx.fillRect(PCX-1,centerY-i,2,1);
+      // 萼
+      const stalkTopY=centerY-stalkH;
+      spr(BUD0,PCX-3,stalkTopY-7,'#2a7a18');
+      // 花を2x描画
+      const fh=sh.spr.length*2, fw=sh.w*2;
+      const fx=PCX-Math.floor(fw/2), fy=stalkTopY-7-fh;
+      ctx.save();ctx.translate(fx,fy);ctx.scale(2,2);
+      spr(sh.spr,0,0,co.p);
+      ctx.fillStyle=co.c;
+      ctx.fillRect(Math.floor(sh.w/2)-2,Math.floor(sh.spr.length/2)-2,4,4);
+      ctx.restore();
+      // スパークル軌道
+      if(state.newBloom){
+        const t=Date.now()/180;
+        const cy=fy+Math.floor(fh/2);
+        for(let i=0;i<8;i++){
+          const a=t+i*Math.PI/4,d=12+Math.sin(t*3+i)*3;
+          ctx.fillStyle=i%2===0?co.p:co.c;
+          ctx.fillRect((PCX+Math.cos(a)*d)|0,(cy+Math.sin(a)*d)|0,1,1);
+        }
       }
     }
   }
@@ -288,10 +339,16 @@ function drawHUD(){
     if(rem>0)pixText('~'+rem+' DAYS LEFT',8,iy+32,'#152015');
   } else if(state.bloomShape>=0){
     const co=COLORS[state.bloomColor];
-    if(state.bloomRarity>0)
-      pixText(RARITY_NAME[state.bloomRarity],8,iy+22,RARITY_COL[state.bloomRarity]);
-    pixBig(SHAPE_NAMES[state.bloomShape],8,state.bloomRarity>0?iy+30:iy+22,co.p);
-    pixText(co.n,8,state.bloomRarity>0?iy+44:iy+36,'#888');
+    if(state.rafflesia){
+      pixText(RARITY_NAME[3],8,iy+22,RARITY_COL[3]);
+      pixBig('RAFFLESIA',8,iy+30,'#c03020');
+      pixText('MYTHIC BLOOM',8,iy+44,'#786040');
+    } else {
+      if(state.bloomRarity>0)
+        pixText(RARITY_NAME[state.bloomRarity],8,iy+22,RARITY_COL[state.bloomRarity]);
+      pixBig(SHAPE_NAMES[state.bloomShape],8,state.bloomRarity>0?iy+30:iy+22,co.p);
+      pixText(co.n,8,state.bloomRarity>0?iy+44:iy+36,'#888');
+    }
   }
 
   // ── ボタン（親指エリア・画面下部）──
@@ -342,7 +399,7 @@ function drawHUD(){
       state.watered=false;state.newBloom=false;
       state.bloomAnimT=-1;state.bloomSaved=false;
       state.water=Math.min(state.water+20,60);
-      state.careScore=0;state.photoColorIdx=-1;
+      state.careScore=0;state.photoColorIdx=-1;state.rafflesia=false;
       state.name='';state.screen='naming';
       hiddenInput.value='';hiddenInput.focus();
       saveState();
@@ -422,9 +479,10 @@ function drawCollection(){
     ctx.fillRect(fx+Math.floor(sh.w/2)-1,fy+Math.floor(sh.spr.length/2)-1,2,2);
 
     // 左テキスト
-    pixText(e.name,22,y+2,'#4ccc50');
-    const rStr=e.rarity===2?'★':e.rarity===1?'*':'';
-    pixText(rStr+SHAPE_NAMES[e.shape],22,y+11,e.rarity?RARITY_COL[e.rarity]:co.p);
+    pixText(e.name,22,y+2,e.rafflesia?'#ff80ff':'#4ccc50');
+    const rStr=e.rarity===3?'!!':e.rarity===2?'★':e.rarity===1?'*':'';
+    const shapeLabel=e.rafflesia?'RAFFLESIA':SHAPE_NAMES[e.shape];
+    pixText(rStr+shapeLabel,22,y+11,e.rarity?RARITY_COL[e.rarity]:co.p);
 
     // 右テキスト
     const d=new Date(e.ts);
@@ -461,57 +519,89 @@ let _shake=0;
 function drawBloomAnim(dt){
   const t=state.bloomAnimT;
   const co=COLORS[state.bloomColor];
-  const sh=SHAPES[state.bloomShape];
   state.bloomAnimT+=dt;
   if(_shake>0)_shake=Math.max(0,_shake-dt*8);
 
   const sx=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
   const sy=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
   ctx.save();ctx.translate(sx,sy);
-
   drawPlant();
 
-  const fr=Math.floor(t*24);
-  if(fr===0||fr===1)      {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
-  else if(fr===2||fr===3) {ctx.fillStyle=co.p;     ctx.fillRect(-8,-8,200,336);}
-  else if(fr===4)         {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
-
-  if(fr>=4&&!_burstFired){
-    bigBurst(PCX,bloomFlowerY(),co.p,co.c);
-    _shake=2;
-    _burstFired=true;
+  if(state.rafflesia){
+    // ── ラフレシア専用アニメ ──
+    const fr=Math.floor(t*24);
+    if(fr===0||fr===1)     {ctx.fillStyle='#1a0008';ctx.fillRect(-8,-8,200,336);}
+    else if(fr===2||fr===3){ctx.fillStyle='#8b2214';ctx.fillRect(-8,-8,200,336);}
+    else if(fr===4)        {ctx.fillStyle='#1a0008';ctx.fillRect(-8,-8,200,336);}
+    // 成長アニメ
+    if(t>=0.18){
+      const pt=PTYPE[state.plantType||0];
+      const py=188-pt.h2, centerY=py+pt.cy2;
+      const growS=Math.min(1,(t-0.18)/0.9);
+      drawRafflesia(PCX,centerY-18,growS);
+    }
+    if(!_burstFired&&t>=0.22){
+      bigBurst(PCX,120,'#c03020','#d4a860');
+      _shake=3;_burstFired=true;
+    }
+  } else {
+    // ── 通常bloomアニメ ──
+    const sh=SHAPES[state.bloomShape];
+    const fr=Math.floor(t*24);
+    if(fr===0||fr===1)      {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
+    else if(fr===2||fr===3) {ctx.fillStyle=co.p;     ctx.fillRect(-8,-8,200,336);}
+    else if(fr===4)         {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
+    if(fr>=4&&!_burstFired){
+      bigBurst(PCX,bloomFlowerY(),co.p,co.c);
+      _shake=2;_burstFired=true;
+    }
   }
+
   drawParticles();
   ctx.restore();
 
-  // タイプオン: 花の名前を1文字ずつ表示
+  // タイプオン
   if(t>=0.4){
-    const sh=SHAPES[state.bloomShape];
-    const co=COLORS[state.bloomColor];
-    const shapeName=SHAPE_NAMES[state.bloomShape];
-    const chars=Math.min(shapeName.length,Math.floor((t-0.4)*14));
-    const name=shapeName.slice(0,chars);
-    const nx=Math.round((180-shapeName.length*8)/2);
-    pixBig(name,nx,236,co.p);
-    if(chars<shapeName.length&&Math.floor(t*6)%2===0){
-      ctx.fillStyle=co.p;ctx.fillRect(nx+chars*8,236,4,10);
-    }
-    if(chars===shapeName.length){
-      if(state.bloomRarity>0)
-        pixText(RARITY_NAME[state.bloomRarity],Math.round((180-RARITY_NAME[state.bloomRarity].length*4)/2),250,RARITY_COL[state.bloomRarity]);
-      pixText(co.n,Math.round((180-co.n.length*4)/2),state.bloomRarity>0?258:250,'#888888');
-      if(Math.floor(t*4)%2===0){
-        ctx.fillStyle=co.c;
-        ctx.fillRect(nx-6,241,3,3);ctx.fillRect(nx+shapeName.length*8+3,241,3,3);
+    if(state.rafflesia){
+      const label='RAFFLESIA!!';
+      const chars=Math.min(label.length,Math.floor((t-0.4)*12));
+      const nx=Math.round((180-label.length*8)/2);
+      pixBig(label.slice(0,chars),nx,228,'#c03020');
+      if(chars<label.length&&Math.floor(t*6)%2===0){
+        ctx.fillStyle='#c03020';ctx.fillRect(nx+chars*8,228,4,10);
+      }
+      if(chars===label.length){
+        pixText(RARITY_NAME[3],Math.round((180-RARITY_NAME[3].length*4)/2),244,RARITY_COL[3]);
+        if(Math.floor(t*3)%2===0){
+          ctx.fillStyle='#d4a860';
+          ctx.fillRect(nx-8,233,4,4);ctx.fillRect(nx+label.length*8+4,233,4,4);
+        }
+      }
+    } else {
+      const sh=SHAPES[state.bloomShape];
+      const shapeName=SHAPE_NAMES[state.bloomShape];
+      const chars=Math.min(shapeName.length,Math.floor((t-0.4)*14));
+      const name=shapeName.slice(0,chars);
+      const nx=Math.round((180-shapeName.length*8)/2);
+      pixBig(name,nx,236,co.p);
+      if(chars<shapeName.length&&Math.floor(t*6)%2===0){
+        ctx.fillStyle=co.p;ctx.fillRect(nx+chars*8,236,4,10);
+      }
+      if(chars===shapeName.length){
+        if(state.bloomRarity>0)
+          pixText(RARITY_NAME[state.bloomRarity],Math.round((180-RARITY_NAME[state.bloomRarity].length*4)/2),250,RARITY_COL[state.bloomRarity]);
+        pixText(co.n,Math.round((180-co.n.length*4)/2),state.bloomRarity>0?258:250,'#888888');
+        if(Math.floor(t*4)%2===0){
+          ctx.fillStyle=co.c;
+          ctx.fillRect(nx-6,241,3,3);ctx.fillRect(nx+shapeName.length*8+3,241,3,3);
+        }
       }
     }
   }
 
-  // 完了 (2.4s)
-  if(t>=2.4){
-    state.bloomAnimT=-1;
-    _burstFired=false;
-  }
+  // 完了
+  const dur=state.rafflesia?3.2:2.4;
+  if(t>=dur){state.bloomAnimT=-1;_burstFired=false;}
 }
 
 // ── DEBUG BUTTONS ─────────────────────────────────────────

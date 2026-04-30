@@ -225,5 +225,5 @@ const COLORS=[
   {p:'#ff2020',c:'#ffff00',n:'SCARLET', r:2},
   {p:'#ffffff',c:'#ffff40',n:'LUNAR',   r:2},
 ];
-const RARITY_NAME=['','UNCOMMON ','★ RARE '];
-const RARITY_COL=['','#40ffb0','#ffd700'];
+const RARITY_NAME=['','UNCOMMON ','★ RARE ','!! MYTHIC !!'];
+const RARITY_COL=['','#40ffb0','#ffd700','#ff50ff'];
