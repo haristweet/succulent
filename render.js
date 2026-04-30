@@ -4,7 +4,8 @@ let happyTimer=0;
 let nameCursorT=0;
 let _niceTimer=0; // NICE TIMING! 表示タイマー
 let _photoAnim=-1; // 写真取込アニメ（-1=非表示, 0〜=経過秒）
-let _dbgVisible=false; // トリプルタップで表示
+let _dbgVisible=false;    // トリプルタップで表示
+let _rafflesiaScale=-1;   // bloom anim中のスケール制御（-1=通常, 0〜1=アニメ中）
 const _PHOTO_DUR=2.5;
 const _PHOTO_COLS=['#ff3030','#ff8800','#ffe030','#30ee50','#00ccff','#3060ff','#cc44ff'];
 
@@ -235,8 +236,14 @@ function drawPlant(){
     spr(pt.s2,px,py,pc.body);
     if(pc.tip)spr(pt.s2.slice(0,2),px,py,pc.tip);
     if(state.rafflesia){
-      // 超巨大ラフレシア（寄生、茎なし）
-      drawRafflesia(PCX,centerY-18,1);
+      // 長い茎の上に超巨大ラフレシア
+      const stalkH=38;
+      ctx.fillStyle=pc.stem;
+      for(let i=1;i<=stalkH;i++)ctx.fillRect(PCX-1,centerY-i,2,1);
+      const stalkTopY=centerY-stalkH;
+      spr(BUD0,PCX-3,stalkTopY-7,'#2a7a18');
+      const s=_rafflesiaScale>=0?_rafflesiaScale:1;
+      drawRafflesia(PCX,stalkTopY-15,s);
     } else {
       const sh=SHAPES[state.bloomShape];
       const co=COLORS[state.bloomColor];
@@ -525,28 +532,26 @@ function drawBloomAnim(dt){
   const sx=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
   const sy=_shake>0?(Math.random()*_shake*4|0)-(_shake*2|0):0;
   ctx.save();ctx.translate(sx,sy);
-  drawPlant();
 
   if(state.rafflesia){
     // ── ラフレシア専用アニメ ──
+    // _rafflesiaScaleでdrawPlant内のラフレシア描画を制御
+    _rafflesiaScale=t>=0.18?Math.min(1,(t-0.18)/0.9):0;
+    drawPlant();
+    _rafflesiaScale=-1;
     const fr=Math.floor(t*24);
     if(fr===0||fr===1)     {ctx.fillStyle='#1a0008';ctx.fillRect(-8,-8,200,336);}
     else if(fr===2||fr===3){ctx.fillStyle='#8b2214';ctx.fillRect(-8,-8,200,336);}
     else if(fr===4)        {ctx.fillStyle='#1a0008';ctx.fillRect(-8,-8,200,336);}
-    // 成長アニメ
-    if(t>=0.18){
-      const pt=PTYPE[state.plantType||0];
-      const py=188-pt.h2, centerY=py+pt.cy2;
-      const growS=Math.min(1,(t-0.18)/0.9);
-      drawRafflesia(PCX,centerY-18,growS);
-    }
     if(!_burstFired&&t>=0.22){
-      bigBurst(PCX,120,'#c03020','#d4a860');
+      const pt=PTYPE[state.plantType||0];
+      const soilY=190,py=soilY-pt.h2,cy2=py+pt.cy2;
+      bigBurst(PCX,cy2-53,'#c03020','#d4a860');
       _shake=3;_burstFired=true;
     }
   } else {
     // ── 通常bloomアニメ ──
-    const sh=SHAPES[state.bloomShape];
+    drawPlant();
     const fr=Math.floor(t*24);
     if(fr===0||fr===1)      {ctx.fillStyle='#ffffff';ctx.fillRect(-8,-8,200,336);}
     else if(fr===2||fr===3) {ctx.fillStyle=co.p;     ctx.fillRect(-8,-8,200,336);}
