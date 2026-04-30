@@ -46,10 +46,10 @@ function _bgCity(rng){
   const cx2=30+Math.floor(rng()*120), cy2=20+Math.floor(rng()*18);
 
   if(state.sun){
-    // Day: blue gradient sky
+    // Day: bright blue gradient sky
     for(let y=0;y<195;y++){
       const t=y/195;
-      ctx.fillStyle=`rgb(${(0x1c+t*0x14)|0},${(0x38+t*0x18)|0},${(0x72+t*0x14)|0})`;
+      ctx.fillStyle=`rgb(${(0x30+t*0x18)|0},${(0x60+t*0x1c)|0},${(0xa0+t*0x14)|0})`;
       ctx.fillRect(0,y,180,1);
     }
     _drawSun(mx,my);
@@ -119,13 +119,13 @@ function _bgRural(rng){
   const cx2=40+Math.floor(rng()*110), cy2=14+Math.floor(rng()*18);
 
   if(state.sun){
-    // Day: warm blue sky
+    // Day: bright open sky
     for(let y=0;y<100;y++){
       const t=y/100;
-      ctx.fillStyle=`rgb(${(0x20+t*0x1c)|0},${(0x48+t*0x1a)|0},${(0x68+t*0x14)|0})`;
+      ctx.fillStyle=`rgb(${(0x32+t*0x1a)|0},${(0x6a+t*0x1e)|0},${(0x98+t*0x10)|0})`;
       ctx.fillRect(0,y,180,1);
     }
-    ctx.fillStyle='#38566a';ctx.fillRect(0,100,180,120);
+    ctx.fillStyle='#5080a8';ctx.fillRect(0,100,180,120);
     _drawSun(mx,my);
     _drawCloud(cx1,cy1);_drawCloud(cx2,cy2);
   } else {
@@ -199,10 +199,10 @@ function _bgWild(rng){
     // Day: mountain morning sky
     for(let y=0;y<120;y++){
       const t=y/120;
-      ctx.fillStyle=`rgb(${(0x16+t*0x16)|0},${(0x30+t*0x1c)|0},${(0x56+t*0x16)|0})`;
+      ctx.fillStyle=`rgb(${(0x28+t*0x18)|0},${(0x50+t*0x22)|0},${(0x84+t*0x14)|0})`;
       ctx.fillRect(0,y,180,1);
     }
-    ctx.fillStyle='#26384e';ctx.fillRect(0,120,180,80);
+    ctx.fillStyle='#3c5e80';ctx.fillRect(0,120,180,80);
     _drawSun(mx+20,my);
     _drawCloud(cx1,cy1);_drawCloud(cx2,cy2);_drawCloud(cx3,cy3);
   } else {
@@ -363,8 +363,9 @@ function _animShootingStar(){
 
 // Dark panel overlay for HUD area
 function _hudPanel(){
-  ctx.fillStyle='#050d06';ctx.fillRect(0,204,180,116);
-  ctx.fillStyle='#080e08';
+  ctx.fillStyle=state.sun?'#0e1e0e':'#050d06';
+  ctx.fillRect(0,204,180,116);
+  ctx.fillStyle=state.sun?'#121e12':'#080e08';
   for(let x=0;x<180;x+=8)ctx.fillRect(x,204,1,116);
   for(let y=208;y<320;y+=8)ctx.fillRect(0,y,180,1);
 }

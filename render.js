@@ -64,21 +64,22 @@ function drawNaming(){
 function getPlantColors(){
   const w=state.water, s=state.sun;
 
-  // 体の色：スイートスポット36〜65、それ以上は過水
+  // 体の色：日照で鮮やか、日陰で暗め
   let body;
-  if(w>85)      body='#8060a0'; // 根腐れ・紫がかる
-  else if(w>70) body='#78b050'; // 過水・薄い緑
-  else if(w>35) body='#3acc28'; // スイートスポット・鮮やか
-  else if(w>15) body='#7a9010'; // 乾燥・黄みがかる
-  else          body='#8a6818'; // 瀕死・茶色がかる
+  if(w>85)      body='#8060a0';
+  else if(w>70) body=s?'#88c858':'#5a8838'; // 過水
+  else if(w>35) body=s?'#52e030':'#26961a'; // スイートスポット
+  else if(w>15) body=s?'#9aba18':'#5a7808'; // 乾燥
+  else          body=s?'#9a7820':'#6a5010'; // 瀕死
 
-  // 茎の色も水分で変化
+  // 茎の色も水分＋日照で変化
   const stemR=w>35?0x20:0x40;
-  const stemG=w>35?Math.floor(0x7a+(w/100)*0x30):0x60;
+  const stemGBase=w>35?Math.floor(0x7a+(w/100)*0x30):0x60;
+  const stemG=Math.min(0xff,Math.floor(stemGBase*(s?1.35:0.85)));
   const stem='#'+stemR.toString(16).padStart(2,'0')+stemG.toString(16).padStart(2,'0')+'10';
 
   // 日光を浴びるほど先端が赤みがかる（多肉植物の日焼け）
-  const tip = s>0.6 ? (w>40?'#c04060':'#a03828') : null;
+  const tip = s>0.6 ? (w>40?'#d04870':'#b04030') : null;
 
   // 水分で膨らみ具合が変わる（スイートスポット内のみふっくら、過水はしおれる）
   const plump=w>=50&&w<=70;
